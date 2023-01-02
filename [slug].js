@@ -124,35 +124,30 @@ export default function MediaDetails() {
 }
 
 export async function getStaticPaths() {
-  let values = [];
-
-  const collectionRef = collection(db, "medias");
-  const q = query(collectionRef, orderBy("publishDate", "desc"));
-  onSnapshot(q, (snapshot) => {
-    snapshot.docs.map((doc) => {
-      const data = doc.data();
-      values.push(data);
-    });
-  });
+  const posts = await getAllNews();
+  const paths = posts
+    .map((p) =>
+      i18nextConfig.i18n.locales.map((l) => ({
+        params: { slug: p.id },
+        locale: l,
+      }))
+    )
+    .flat();
 
   return {
-    paths: values.map((p) =>
-      i18nextConfig.i18n.locales.map((l) => ({
-        params: {
-          locale: l,
-          id: p.id,
-        },
-      }))
-    ),
-    fallback: false,
+    paths: paths,
+    fallback: "blocking",
   };
 }
 
-export async function getStaticProps(ctx) {
+export async function getStaticProps(context) {
+  const slug = context.params.slug;
+  const locale = context.params.locale;
+
   return {
     props: {
-      // if using markdown
-      ...(ctx?.params?.locale, `media/${ctx?.params?.slug}`),
+      slug: slug,
+      ...(await serverSideTranslations(locale, ["common"])),
     },
   };
 }
